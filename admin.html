@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dasbor Admin - FR Agent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            color: #E5E7EB;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Layar Login -->
+    <div id="login-screen" class="flex items-center justify-center min-h-screen w-full">
+        <div class="w-full max-w-md p-8 space-y-8 bg-gray-900 rounded-xl shadow-lg">
+            <div>
+                <h2 class="mt-6 text-center text-3xl font-extrabold text-white">Login Dasbor Admin</h2>
+            </div>
+            <form id="login-form" class="mt-8 space-y-6">
+                <div class="rounded-md shadow-sm -space-y-px">
+                    <div>
+                        <input id="email-address" name="email" type="email" autocomplete="email" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 bg-gray-800 placeholder-gray-500 text-white rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="Alamat email">
+                    </div>
+                    <div>
+                        <input id="password" name="password" type="password" autocomplete="current-password" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 bg-gray-800 placeholder-gray-500 text-white rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="Kata sandi">
+                    </div>
+                </div>
+                <div>
+                    <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Masuk
+                    </button>
+                </div>
+                 <p id="login-error" class="text-center text-sm text-red-500 mt-2"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dasbor Utama (Tersembunyi) -->
+    <div id="app-screen" class="hidden h-screen w-full">
+        <aside class="w-1/3 bg-gray-900 p-4 border-r border-gray-700 flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                 <h2 class="text-xl font-bold">Percakapan Aktif</h2>
+                 <button id="logout-btn" class="text-sm text-red-400 hover:text-red-300">Logout</button>
+            </div>
+            <div id="session-list" class="flex-1 overflow-y-auto">
+                <p class="text-gray-500">Menunggu percakapan baru...</p>
+            </div>
+        </aside>
+
+        <main class="w-2/3 flex flex-col">
+            <div id="chat-welcome" class="flex-1 flex items-center justify-center">
+                <p class="text-gray-500">Pilih percakapan untuk memulai.</p>
+            </div>
+            <div id="chat-area" class="flex-1 flex-col hidden">
+                <div id="chat-header" class="p-4 bg-gray-800 border-b border-gray-700">
+                    <h3 class="font-bold">Chat dengan Pengunjung <span id="current-chat-id" class="text-sm text-gray-400"></span></h3>
+                </div>
+                <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-4"></div>
+                <div class="p-4 border-t border-gray-700">
+                    <form id="reply-form" class="flex gap-2">
+                        <input type="text" id="reply-input" placeholder="Ketik balasan Anda..." class="flex-1 bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 px-4 rounded-lg text-white">Kirim</button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, query, addDoc, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // PENTING: Ganti dengan Konfigurasi Firebase Anda
+        const firebaseConfig = {
+            apiKey: "AIzaSyBK_JrDoVs5gq7GL_jPAxCP4uomKnqFaoI",
+            authDomain: "portofolio-ai-agent.firebaseapp.com",
+            projectId: "portofolio-ai-agent",
+            storageBucket: "portofolio-ai-agent.firebasestorage.app",
+            messagingSenderId: "275202262991",
+            appId: "1:275202262991:web:3f0bfce2d733cc75ddf4ba"
+        };
+
+        // FIX: Tambahkan pengecekan untuk memastikan firebaseConfig telah diubah
+        if (!firebaseConfig || firebaseConfig.apiKey === "AIzaSyB...") {
+            document.body.innerHTML = `
+                <div class="flex items-center justify-center min-h-screen w-full bg-red-900 text-white p-4">
+                    <div class="text-center p-8 border-2 border-red-500 rounded-lg">
+                        <h1 class="text-4xl font-bold mb-4">Kesalahan Konfigurasi Firebase</h1>
+                        <p class="text-xl">Anda belum mengganti nilai placeholder 'firebaseConfig' dengan kunci asli dari proyek Firebase Anda.</p>
+                        <p class="mt-4 text-yellow-300">Silakan buka kembali kode ini, salin 'firebaseConfig' yang benar dari Firebase Console, dan tempelkan untuk menggantikan nilai placeholder.</p>
+                    </div>
+                </div>
+            `;
+            // Hentikan eksekusi script lebih lanjut untuk mencegah error di konsol
+            throw new Error("Firebase config is not set. Please replace placeholder values.");
+        }
+
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // --- DOM Elements ---
+        const loginScreen = document.getElementById('login-screen');
+        const appScreen = document.getElementById('app-screen');
+        const loginForm = document.getElementById('login-form');
+        const loginError = document.getElementById('login-error');
+        const logoutBtn = document.getElementById('logout-btn');
+        const sessionList = document.getElementById('session-list');
+        const chatWelcome = document.getElementById('chat-welcome');
+        const chatArea = document.getElementById('chat-area');
+        const chatMessages = document.getElementById('chat-messages');
+        const currentChatIdEl = document.getElementById('current-chat-id');
+        const replyForm = document.getElementById('reply-form');
+        const replyInput = document.getElementById('reply-input');
+
+        let currentChatId = null;
+        let unsubscribeChats = () => {};
+        let unsubscribeMessages = () => {};
+
+        // --- Auth Logic ---
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                // User is signed in
+                loginScreen.style.display = 'none';
+                appScreen.style.display = 'flex';
+                listenForChats();
+            } else {
+                // User is signed out
+                loginScreen.style.display = 'flex';
+                appScreen.style.display = 'none';
+                unsubscribeChats();
+                unsubscribeMessages();
+            }
+        });
+
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = loginForm.email.value;
+            const password = loginForm.password.value;
+            loginError.textContent = '';
+
+            signInWithEmailAndPassword(auth, email, password)
+                .catch((error) => {
+                    console.error("Login Error:", error);
+                    loginError.textContent = 'Email atau kata sandi salah.';
+                });
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            signOut(auth);
+        });
+
+        // --- Chat Logic ---
+        function listenForChats() {
+            const chatsRef = collection(db, "chats");
+            const q = query(chatsRef, orderBy("timestamp", "desc"));
+            unsubscribeChats = onSnapshot(q, (snapshot) => {
+                if (snapshot.empty) {
+                    sessionList.innerHTML = '<p class="text-gray-500">Belum ada percakapan.</p>';
+                    return;
+                }
+                sessionList.innerHTML = '';
+                snapshot.docs.forEach(doc => {
+                    const sessionButton = document.createElement('button');
+                    sessionButton.className = 'w-full text-left p-2 my-1 rounded-md hover:bg-gray-700 block truncate';
+                    sessionButton.textContent = `Pengunjung ${doc.id.substring(0, 8)}...`;
+                    sessionButton.dataset.id = doc.id;
+                    
+                    sessionButton.addEventListener('click', () => selectChat(doc.id));
+                    sessionList.appendChild(sessionButton);
+                });
+            });
+        }
+        
+        function selectChat(chatId) {
+            currentChatId = chatId;
+            chatWelcome.style.display = 'none';
+            chatArea.style.display = 'flex';
+            currentChatIdEl.textContent = `(${chatId.substring(0, 8)})`;
+            chatMessages.innerHTML = '';
+            unsubscribeMessages();
+
+            const messagesRef = collection(db, "chats", chatId, "messages");
+            const q = query(messagesRef, orderBy("timestamp"));
+
+            unsubscribeMessages = onSnapshot(q, (snapshot) => {
+                chatMessages.innerHTML = '';
+                snapshot.forEach(doc => addMessageToUI(doc.data()));
+            });
+        }
+        
+        function addMessageToUI(data) {
+            const messageDiv = document.createElement('div');
+            const isOperator = data.sender === 'operator';
+            messageDiv.className = `p-3 rounded-lg max-w-[80%] ${isOperator ? 'bg-blue-600 self-end' : 'bg-gray-600 self-start'}`;
+            messageDiv.textContent = data.text;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        replyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const replyText = replyInput.value.trim();
+            if (!replyText || !currentChatId) return;
+
+            const messagesRef = collection(db, "chats", currentChatId, "messages");
+            await addDoc(messagesRef, {
+                text: replyText,
+                sender: 'operator',
+                timestamp: new Date()
+            });
+
+            replyInput.value = '';
+        });
+    </script>
+</body>
+</html>
