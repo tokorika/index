@@ -399,7 +399,7 @@
             // Create/update the chat session document so it appears in the admin dashboard
             await setDoc(doc(db, "chats", chatId), { lastMessage: userMessage, timestamp: new Date() });
 
-            chatInput.value = "";
+            chatInput.value = ""; // FIX: Clear the input field after sending
         });
 
         // --- Other Scripts ---
