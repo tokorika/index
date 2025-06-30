@@ -14,7 +14,7 @@
         }
     </style>
 </head>
-<body>
+<body class="flex h-screen">
 
     <!-- Layar Login -->
     <div id="login-screen" class="flex items-center justify-center min-h-screen w-full">
@@ -57,7 +57,8 @@
             <div id="chat-welcome" class="flex-1 flex items-center justify-center">
                 <p class="text-gray-500">Pilih percakapan untuk memulai.</p>
             </div>
-            <div id="chat-area" class="flex-1 flex-col hidden">
+            <!-- FIX: Added overflow-hidden to constrain the flex child -->
+            <div id="chat-area" class="flex-1 flex flex-col hidden overflow-hidden">
                 <div id="chat-header" class="p-4 bg-gray-800 border-b border-gray-700">
                     <h3 class="font-bold">Chat dengan Pengunjung <span id="current-chat-id" class="text-sm text-gray-400"></span></h3>
                 </div>
@@ -87,7 +88,6 @@
             appId: "1:275202262991:web:3f0bfce2d733cc75ddf4ba"
         };
 
-        // FIX: Tambahkan pengecekan untuk memastikan firebaseConfig telah diubah
         if (!firebaseConfig || firebaseConfig.apiKey === "AIzaSyB...") {
             document.body.innerHTML = `
                 <div class="flex items-center justify-center min-h-screen w-full bg-red-900 text-white p-4">
@@ -98,10 +98,8 @@
                     </div>
                 </div>
             `;
-            // Hentikan eksekusi script lebih lanjut untuk mencegah error di konsol
             throw new Error("Firebase config is not set. Please replace placeholder values.");
         }
-
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
@@ -128,12 +126,10 @@
         // --- Auth Logic ---
         onAuthStateChanged(auth, user => {
             if (user) {
-                // User is signed in
                 loginScreen.style.display = 'none';
                 appScreen.style.display = 'flex';
                 listenForChats();
             } else {
-                // User is signed out
                 loginScreen.style.display = 'flex';
                 appScreen.style.display = 'none';
                 unsubscribeChats();
@@ -146,7 +142,6 @@
             const email = loginForm.email.value;
             const password = loginForm.password.value;
             loginError.textContent = '';
-
             signInWithEmailAndPassword(auth, email, password)
                 .catch((error) => {
                     console.error("Login Error:", error);
@@ -173,7 +168,6 @@
                     sessionButton.className = 'w-full text-left p-2 my-1 rounded-md hover:bg-gray-700 block truncate';
                     sessionButton.textContent = `Pengunjung ${doc.id.substring(0, 8)}...`;
                     sessionButton.dataset.id = doc.id;
-                    
                     sessionButton.addEventListener('click', () => selectChat(doc.id));
                     sessionList.appendChild(sessionButton);
                 });
@@ -190,7 +184,6 @@
 
             const messagesRef = collection(db, "chats", chatId, "messages");
             const q = query(messagesRef, orderBy("timestamp"));
-
             unsubscribeMessages = onSnapshot(q, (snapshot) => {
                 chatMessages.innerHTML = '';
                 snapshot.forEach(doc => addMessageToUI(doc.data()));
@@ -217,7 +210,6 @@
                 sender: 'operator',
                 timestamp: new Date()
             });
-
             replyInput.value = '';
         });
     </script>
