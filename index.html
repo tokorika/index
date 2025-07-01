@@ -434,5 +434,19 @@
             });
         });
     </script>
+    <!-- Start of Qontak Webchat Script -->
+    <script>
+      const qchatInit = document.createElement('script');
+      qchatInit.src = "https://webchat.qontak.com/qchatInitialize.js";
+      const qchatWidget = document.createElement('script');
+      qchatWidget.src = "https://webchat.qontak.com/js/app.js";
+      document.head.prepend(qchatInit);
+      document.head.prepend(qchatWidget);
+      qchatInit.onload = function() { qchatInitialize({
+        id: "def50e44-6439-4513-a9e7-3c5dd30a111c", 
+        code: "SpxHSqyha6PHQQ7FG7-DPw"  
+      })};
+    </script>
+    <!-- End of Qontak Webchat Script -->
 </body>
 </html>
